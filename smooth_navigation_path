@@ -1,0 +1,42 @@
+This file contains the python code for a smooth path of navigation between the cones.
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import splprep, splev
+
+# Step 1: Load CSV file
+
+data = np.genfromtxt('cones.csv', delimiter=',', skip_header=1, dtype=str)  # Read as strings for the 'side' column
+x = data[:, 0].astype(float) # Convert x-coordinates to float
+y = data[:, 1].astype(float)  # Convert y-coordinates to float
+side = data[:, 2]  # Extract side information as a string array
+
+# Step 2: Separate cones into left and right groups
+left_cones = data[side == 'left']  # left-side cones
+right_cones = data[side == 'right']  # right-side cones
+
+x_left = left_cones[:, 0].astype(float)
+y_left = left_cones[:, 1].astype(float)
+x_right = right_cones[:, 0].astype(float)
+y_right = right_cones[:, 1].astype(float)
+
+# Step 3: Calculate the centerline between the left and right cones
+
+center_x = (x_left + x_right) / 2
+center_y = (y_left + y_right) / 2
+
+# Step 4: Fit a smooth curve using spline interpolation for the centerline
+tck, u = splprep([center_x, center_y], s=2)  
+u_fine = np.linspace(0, 1, 500)  # Generate fine points along the spline
+center_x_smooth, center_y_smooth = splev(u_fine, tck)
+
+# Step 5: Plot the cones and the smooth path
+plt.figure(figsize=(12, 8))
+plt.scatter(x_left, y_left, color='blue', label='Left Cones', zorder=3)
+plt.scatter(x_right, y_right, color='red', label='Right Cones', zorder=3)
+plt.plot(center_x_smooth, center_y_smooth, color='green', label='Smooth Path', zorder=1)
+plt.title('Smooth Navigation Path Between Cones')
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+plt.legend()
+plt.grid()
+plt.show()
