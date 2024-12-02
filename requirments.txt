@@ -1,0 +1,1 @@
+list of python libraries necessery for instalation: numpy , matplotlib , scipy.optimize, scipy.spatial, scipy.spline
