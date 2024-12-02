@@ -1,0 +1,22 @@
+In the first part of the mission, my objective was to create a smooth line for a car between the cones.
+in the next couple of lines i will break down the code into section and explain it.
+section 1: loading the cones coordinates.
+I created arrys that stored the x coordinates, y coordinates, and a list of left or right strings.
+section 2: seperating the right and left cones.
+in this section I created 4 arrays , one for each coordinate (x_left, y_left, x_right ,y_right)
+section 3: created two arrays which are the base of the car path by averaging the x,y coordinates.
+step 4: created a smooth path based on the points from section 3 using B-spline theqnique.
+step 5: plotting the results.
+
+In the second, my objective was to oprimize the path for minimal curvatur while insuring feasibility for veahicle navigation.
+I did so by adding two function (objective, constraint), i will explain both of them.
+objective gets an array and returns the sum of the squared curvator array, which is measured by the fernet-serret formula for 2D curvature.
+constraint makes sure that the car path will not deviate from the center more than we want it to.
+The last significant diffrence between the codes is the minimize function, minimize gets objective and constraint and return the optimized path.
+
+
+
+
+
+
+
