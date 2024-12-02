@@ -1,0 +1,88 @@
+The following code is an upgrade of the smooth path code since it contains two functions (objective, constrains) 
+that minimize the curvator and keep the car close to the center of the road. 
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+from scipy.spatial import cKDTree
+from scipy.interpolate import splprep, splev
+
+# Step 1: Load CSV file
+data = np.genfromtxt('cones.csv', delimiter=',', skip_header=1, dtype=str)  # Read as strings
+x = data[:, 0].astype(float)  # Convert x-coordinates to float
+y = data[:, 1].astype(float)  # Convert y-coordinates to float
+side = data[:, 2]  
+
+# Step 2: Separate cones into left and right groups
+left_mask = side == 'left'
+right_mask = side == 'right'
+
+x_left = x[left_mask]
+y_left = y[left_mask]
+x_right = x[right_mask]
+y_right = y[right_mask]
+
+
+tree_right = cKDTree(np.c_[x_right, y_right])
+distances, indices = tree_right.query(np.c_[x_left, y_left])
+matched_x_right = x_right[indices]
+matched_y_right = y_right[indices]
+
+
+center_x = (x_left + matched_x_right) / 2
+center_y = (y_left + matched_y_right) / 2
+
+# Step 3: Define an optimization problem to minimize curvature
+def objective(params):
+    """Objective: Minimize curvature."""
+    n = len(center_x)
+    curve_x = params[:n]
+    curve_y = params[n:]
+
+    dx = np.gradient(curve_x)
+    dy = np.gradient(curve_y)
+    ddx = np.gradient(dx)
+    ddy = np.gradient(dy)
+
+    # Avoid division by zero
+    epsilon = 1e-6
+    denominator = (dx**2 + dy**2)**1.5 + epsilon
+    curvature = (dx * ddy - dy * ddx) / denominator
+
+    return np.sum(curvature**2)  # Minimize the total curvature
+
+# Constraints: Keep the path close to the initial centerline
+def constraint(params):
+    """Constraint: Path should stay close to the initial centerline."""
+    n = len(center_x)
+    curve_x = params[:n]
+    curve_y = params[n:]
+    max_deviation = 1.0  # Maximum allowed deviation from the initial centerline
+    return max_deviation - np.sqrt((curve_x - center_x)**2 + (curve_y - center_y)**2)
+
+# Initial guess for optimization
+initial_guess = np.concatenate([center_x, center_y])
+
+# Solve optimization problem
+result = minimize(objective, initial_guess, constraints={'type': 'ineq', 'fun': constraint})
+
+# Extract optimized path
+optimized_path = result.x
+optimized_x = optimized_path[:len(center_x)]
+optimized_y = optimized_path[len(center_x):]
+
+# Fit a B-spline to the optimized path
+tck, u = splprep([optimized_x, optimized_y], s=0) 
+u_fine = np.linspace(0, 1, 500)
+optimized_x_smooth, optimized_y_smooth = splev(u_fine, tck)
+
+# Step 4: Plot the results
+plt.figure(figsize=(12, 8))
+plt.scatter(x_left, y_left, color='blue', label='Left Cones', zorder=2)
+plt.scatter(x_right, y_right, color='red', label='Right Cones', zorder=2)
+plt.plot(optimized_x_smooth, optimized_y_smooth, color='green', label='Optimized Path', zorder=1)
+plt.title('Optimized Path')
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+plt.legend()
+plt.grid()
+plt.show()
